@@ -35,7 +35,7 @@ function App() {
 
       const result = await res.json();
       if (res.ok) {
-        console.log(result);
+        setNotes((prevNotes) => [...prevNotes, result.data] ) 
       }
     } catch (error) {
       console.error("Error", error);
@@ -56,7 +56,7 @@ function App() {
         return prevNotes.map((note) => (note.id === id ? result.data : note));
       });
 
-      console.log(result);
+      console.log(result.data);
     } catch (error) {
       console.error("Error updating note:", error);
     }
