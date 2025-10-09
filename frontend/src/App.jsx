@@ -1,19 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useEffect } from "react";
 
-// ================== App ==================
 function App() {
   const [notes, setNotes] = useState([]);
 
   const baseUrl = "https://backend-rho-one-69.vercel.app/"
 
-  // Fetch semua notes
   const fetchNotes = async () => {
     try {
       const res = await fetch(`${baseUrl}/notes`);
+
       const result = await res.json();
+
       setNotes(result.data);
     } catch (error) {
-      console.error("Error fetching notes:", error);
+      console.error("Error", error);
     }
   };
 
@@ -21,59 +22,64 @@ function App() {
     fetchNotes();
   }, []);
 
-  // Tambah note baru
-  const addNote = async (title, content) => {
+  const addNote = async (newTitle, newContent) => {
     try {
       const res = await fetch(`${baseUrl}/notes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, content }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: newTitle,
+          content: newContent,
+        }),
       });
 
       const result = await res.json();
-
       if (res.ok) {
-        setNotes((prev) => [...prev, result.data]);
+        setNotes((prevNotes) => [...prevNotes, result.data] ) 
       }
     } catch (error) {
-      console.error("Error adding note:", error);
+      console.error("Error", error);
     }
   };
 
-  // Update note
-  const handleUpdateNote = async (id, title, content) => {
+  const handleupdateNote = async (id, updateTitle, updateContent) => {
     try {
       const res = await fetch(`${baseUrl}/notes/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, content }),
+        body: JSON.stringify({ title: updateTitle, content: updateContent }),
       });
 
       const result = await res.json();
 
-      if (res.ok) {
-        setNotes((prev) =>
-          prev.map((note) => (note.id === id ? result.data : note))
-        );
-      }
+      setNotes((prevNotes) => {
+        return prevNotes.map((note) => (note.id === id ? result.data : note));
+      });
+
+      console.log(result.data);
     } catch (error) {
       console.error("Error updating note:", error);
     }
   };
 
-  // Hapus note
-  const handleDeleteNote = async (id) => {
+  const handleDelete = async (id) => {
     try {
       const res = await fetch(`${baseUrl}/notes/${id}`, {
         method: "DELETE",
       });
 
       if (res.ok) {
-        setNotes((prev) => prev.filter((note) => note.id !== id));
+        setNotes((notes) => notes.filter((note) => note.id !== id));
       }
     } catch (error) {
-      console.error("Error deleting note:", error);
+      console.log(error);
     }
+  };
+
+  const getNoteById = (id) => {
+    console.log(id);
   };
 
   return (
@@ -83,8 +89,9 @@ function App() {
         <NoteForm onAddNote={addNote} />
         <NoteList
           notes={notes}
-          onUpdate={handleUpdateNote}
-          onDelete={handleDeleteNote}
+          onDelete={handleDelete}
+          onUpdate={handleupdateNote}
+          onGetById={getNoteById}
         />
       </main>
     </>
@@ -95,13 +102,15 @@ export default App;
 
 // ================== Komponen ==================
 
-const Navbar = () => (
-  <nav className="fixed top-0 w-full flex justify-center bg-white shadow">
-    <div className="container flex justify-between px-5 py-5">
-      <img src="/logo.svg" alt="Logo" />
-    </div>
-  </nav>
-);
+const Navbar = () => {
+  return (
+    <nav className="w-full fixed top-0 flex justify-center bg-white shadow">
+      <div className="flex justify-between px-5 py-5 container">
+        <img src="/logo.svg" alt="Logo" />
+      </div>
+    </nav>
+  );
+};
 
 const NoteForm = ({ onAddNote }) => {
   const [title, setTitle] = useState("");
@@ -109,7 +118,6 @@ const NoteForm = ({ onAddNote }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
     onAddNote(title, content);
     setTitle("");
     setContent("");
@@ -121,23 +129,23 @@ const NoteForm = ({ onAddNote }) => {
         <input
           type="text"
           placeholder="Title"
-          className="rounded-sm border border-gray-400 p-3"
+          className="rounded-sm outline outline-gray-400 p-3"
+          required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          required
         />
         <textarea
           placeholder="Content"
-          className="resize-y min-h-14 rounded-sm border border-gray-400 p-3"
+          className="resize-y min-h-14 rounded-sm outline outline-gray-400 p-3"
+          required
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          required
         />
         <button
           type="submit"
-          className="bg-blue-500 text-white font-semibold rounded-lg py-3 hover:bg-blue-600 transition"
+          className="bg-blue-500 text-white font-semibold rounded-lg py-3"
         >
-          Add Note
+          Add note
         </button>
       </form>
     </section>
@@ -149,14 +157,9 @@ const NoteItem = ({ note, onDelete, onUpdate }) => {
   const [titleEdited, setTitleEdited] = useState(note.title);
   const [contentEdited, setContentEdited] = useState(note.content);
 
-  const handleSave = () => {
-    onUpdate(note.id, titleEdited, contentEdited);
-    setIsEditing(false);
-  };
-
   const handleCancel = () => {
-    setTitleEdited(note.title);
-    setContentEdited(note.content);
+    setTitleEdited(note.title); // ✅ pakai setTitleEdited
+    setContentEdited(note.content); // ✅ pakai setContentEdited
     setIsEditing(false);
   };
 
@@ -165,26 +168,29 @@ const NoteItem = ({ note, onDelete, onUpdate }) => {
       {isEditing ? (
         <>
           <input
-            type="text"
             value={titleEdited}
-            className="rounded-sm border border-gray-400 p-2 w-full"
+            type="text"
+            className="rounded-sm outline outline-gray-400 p-2 w-full"
             onChange={(e) => setTitleEdited(e.target.value)}
           />
           <textarea
             value={contentEdited}
-            className="rounded-sm border border-gray-400 p-2 w-full mt-2"
+            className="rounded-sm outline outline-gray-400 p-2 w-full mt-2"
             onChange={(e) => setContentEdited(e.target.value)}
-          />
+          ></textarea>
           <div className="mt-4 flex gap-2">
             <button
-              className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+              className="bg-red-500 text-white px-3 py-1 rounded"
               onClick={handleCancel}
             >
               Cancel
             </button>
             <button
-              className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-              onClick={handleSave}
+              className="bg-green-500 text-white px-3 py-1 rounded"
+              onClick={() => {
+                onUpdate(note.id, titleEdited, contentEdited); // ✅ pakai titleEdited & contentEdited
+                setIsEditing(false);
+              }}
             >
               Save
             </button>
@@ -196,17 +202,17 @@ const NoteItem = ({ note, onDelete, onUpdate }) => {
           <p className="text-sm text-gray-500">
             ~{showFormattedDate(note.created_at)}
           </p>
-          <p className="mt-2 text-gray-700">{note.content}</p>
+          <p className="mt-2">{note.content}</p>
           <div className="mt-4 flex gap-2">
             <button
-              className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+              className="bg-yellow-500 text-white px-3 py-1 rounded"
               onClick={() => setIsEditing(true)}
             >
               Edit
             </button>
             <button
-              className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-              onClick={() => onDelete(note.id)}
+              className="bg-red-500 text-white px-3 py-1 rounded"
+              onClick={() => onDelete(note.id)} // kalau mau pakai delete
             >
               Delete
             </button>
@@ -217,30 +223,32 @@ const NoteItem = ({ note, onDelete, onUpdate }) => {
   );
 };
 
-const NoteList = ({ notes, onUpdate, onDelete }) => (
-  <section className="container py-8">
-    <h2 className="inline-flex items-center gap-2 text-2xl font-medium mb-6">
-      <img src="/note.svg" alt="note icon" className="w-8 h-8" />
-      Notes
-    </h2>
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {notes.length > 0 ? (
-        notes.map((note) => (
-          <NoteItem
-            key={note.id}
-            note={note}
-            onUpdate={onUpdate}
-            onDelete={onDelete}
-          />
-        ))
-      ) : (
-        <h1 className="text-gray-400">Data Kosong</h1>
-      )}
-    </div>
-  </section>
-);
+const NoteList = ({ notes, onUpdate, onDelete }) => {
+  return (
+    <section className="container py-8">
+      <h2 className="inline-flex items-center gap-2 text-2xl font-medium mb-6">
+        <img src="/note.svg" alt="note icon" className="w-8 h-8" />
+        Notes
+      </h2>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {notes.length > 0 ? (
+          notes.map((note) => (
+            <NoteItem
+              key={note.id}
+              note={note}
+              onUpdate={onUpdate}
+              onDelete={onDelete}
+            />
+          ))
+        ) : (
+          <h1>Data Kosong</h1>
+        )}
+      </div>
+    </section>
+  );
+};
 
-// ================== Helper ==================
+// helper
 const showFormattedDate = (date) => {
   const options = {
     year: "numeric",
@@ -249,4 +257,4 @@ const showFormattedDate = (date) => {
     day: "numeric",
   };
   return new Date(date).toLocaleDateString("id-ID", options);
-};
+}
